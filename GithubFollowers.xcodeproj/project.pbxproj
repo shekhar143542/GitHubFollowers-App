@@ -10,9 +10,22 @@
 		2001F9DE3089C4B900D15C8B /* GithubFollowers.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GithubFollowers.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		20D72C663089CE6000019FED /* Exceptions for "GithubFollowers" folder in "GithubFollowers" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				GitHubNetworking,
+			);
+			target = 2001F9DD3089C4B900D15C8B /* GithubFollowers */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		2001F9E03089C4B900D15C8B /* GithubFollowers */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				20D72C663089CE6000019FED /* Exceptions for "GithubFollowers" folder in "GithubFollowers" target */,
+			);
 			path = GithubFollowers;
 			sourceTree = "<group>";
 		};

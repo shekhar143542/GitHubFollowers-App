@@ -8,10 +8,10 @@
 import SwiftUI
 
 @main
-struct GithubFollowersApp: App {
+struct GitHubFollowersApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            RootView()
         }
     }
 }
