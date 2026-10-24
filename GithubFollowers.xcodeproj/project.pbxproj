@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		2044C37E308CC44400331C09 /* GitHubNetworking in Frameworks */ = {isa = PBXBuildFile; productRef = 2044C37D308CC44400331C09 /* GitHubNetworking */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		2001F9DE3089C4B900D15C8B /* GithubFollowers.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GithubFollowers.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -36,6 +40,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				2044C37E308CC44400331C09 /* GitHubNetworking in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -46,6 +51,7 @@
 			isa = PBXGroup;
 			children = (
 				2001F9E03089C4B900D15C8B /* GithubFollowers */,
+				2044C37C308CC44400331C09 /* Frameworks */,
 				2001F9DF3089C4B900D15C8B /* Products */,
 			);
 			sourceTree = "<group>";
@@ -56,6 +62,13 @@
 				2001F9DE3089C4B900D15C8B /* GithubFollowers.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		2044C37C308CC44400331C09 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -78,6 +91,7 @@
 			);
 			name = GithubFollowers;
 			packageProductDependencies = (
+				2044C37D308CC44400331C09 /* GitHubNetworking */,
 			);
 			productName = GithubFollowers;
 			productReference = 2001F9DE3089C4B900D15C8B /* GithubFollowers.app */;
@@ -364,6 +378,13 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		2044C37D308CC44400331C09 /* GitHubNetworking */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = GitHubNetworking;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 2001F9D63089C4B900D15C8B /* Project object */;
 }
