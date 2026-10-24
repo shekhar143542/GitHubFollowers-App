@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		2044C37E308CC44400331C09 /* GitHubNetworking in Frameworks */ = {isa = PBXBuildFile; productRef = 2044C37D308CC44400331C09 /* GitHubNetworking */; };
+		2044C38D308CEC3800331C09 /* GitHubNetworking in Frameworks */ = {isa = PBXBuildFile; productRef = 2044C38C308CEC3800331C09 /* GitHubNetworking */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -40,7 +40,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				2044C37E308CC44400331C09 /* GitHubNetworking in Frameworks */,
+				2044C38D308CEC3800331C09 /* GitHubNetworking in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -91,7 +91,7 @@
 			);
 			name = GithubFollowers;
 			packageProductDependencies = (
-				2044C37D308CC44400331C09 /* GitHubNetworking */,
+				2044C38C308CEC3800331C09 /* GitHubNetworking */,
 			);
 			productName = GithubFollowers;
 			productReference = 2001F9DE3089C4B900D15C8B /* GithubFollowers.app */;
@@ -380,7 +380,7 @@
 /* End XCConfigurationList section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		2044C37D308CC44400331C09 /* GitHubNetworking */ = {
+		2044C38C308CEC3800331C09 /* GitHubNetworking */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = GitHubNetworking;
 		};

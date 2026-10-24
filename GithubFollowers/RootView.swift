@@ -1,10 +1,3 @@
-//
-//  RootView.swift
-//  GithubFollowers
-//
-//  Created by Kubbireddy Soma Chinna Shekhar on 22/10/26.
-//
-
 
 
 
@@ -22,7 +15,7 @@ struct RootView: View {
             }
         }
         .task {
-            try? await Task.sleep(for: .seconds(2))
+            try? await Task.sleep(for: .seconds(4))
             showSplash = false
         }
     }

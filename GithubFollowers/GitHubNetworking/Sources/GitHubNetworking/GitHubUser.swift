@@ -9,7 +9,7 @@
 
 import Foundation
 
-public struct GitHubUser: Decodable, Identifiable, Hashable {
+public struct GitHubUser: Decodable, Identifiable, Hashable, Sendable{
     public let id: Int
     public let login: String
     public let avatarURL: URL

@@ -1,11 +1,3 @@
-//
-//  GitHubAPIClient.swift
-//  GitHubNetworking
-//
-//  Created by Kubbireddy Soma Chinna Shekhar on 24/10/26.
-//
-
-
 public enum GitHubAPIError: Error {
     case invalidURL
     case invalidResponse
@@ -54,9 +46,9 @@ public struct GitHubAPIClient {
                 }
             }
 
-            guard (200..<300).contains(httpResponse.statusCode) else {
-                throw GitHubAPIError.requestFailed(
-                    statusCode: httpResponse.statusCode
+        guard (200..<300).contains(httpResponse.statusCode) else {
+                        throw GitHubAPIError.requestFailed(
+                            statusCode: httpResponse.statusCode
                 )
             }
 
@@ -64,5 +56,54 @@ public struct GitHubAPIClient {
 
             return user
         }
+    
+    
+    public func fetchFollowers(
+        username: String,
+        page: Int
+    ) async throws -> [GitHubUser] {
+
+        guard let url = URL(
+            string: "https://api.github.com/users/\(username)/followers?per_page=100&page=\(page)"
+        ) else {
+            throw GitHubAPIError.invalidURL
+        }
+
+        let (data, response) = try await URLSession.shared.data(
+            from: url
+        )
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw GitHubAPIError.invalidResponse
+        }
+
+        let statusCode = httpResponse.statusCode
+
+        if statusCode == 404 {
+            throw GitHubAPIError.userNotFound
+        }
+
+        if statusCode == 403 || statusCode == 429 {
+            let remaining = httpResponse.value(
+                forHTTPHeaderField: "X-RateLimit-Remaining"
+            )
+
+            if statusCode == 429 || remaining == "0" {
+                throw GitHubAPIError.rateLimitExceeded
+            }
+        }
+
+        guard (200..<300).contains(statusCode) else {
+            throw GitHubAPIError.requestFailed(
+                statusCode: statusCode
+            )
+        }
+
+        return try JSONDecoder().decode(
+            [GitHubUser].self,
+            from: data
+        )
+    }
+
 
 }
