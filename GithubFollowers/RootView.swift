@@ -15,7 +15,7 @@ struct RootView: View {
             }
         }
         .task {
-            try? await Task.sleep(for: .seconds(4))
+            try? await Task.sleep(for: .seconds(2))
             showSplash = false
         }
     }

@@ -8,6 +8,14 @@ final class FollowersViewController: UIViewController {
     private let api = GitHubAPIClient()
 
     private var followers: [GitHubUser] = []
+    
+    //filtering properties
+    private var filteredFollowers: [GitHubUser] = []
+    private var isFiltering: Bool = false
+
+    private let searchController = UISearchController(
+        searchResultsController: nil
+    )
 
     // Pagination state
     private var currentPage = 1
@@ -35,8 +43,20 @@ final class FollowersViewController: UIViewController {
 
         configureCollectionView()
         configureDataSource()
+        configureSearchController()
 
         loadFollowers(page: currentPage)
+    }
+    
+    private func configureSearchController() {
+        searchController.searchResultsUpdater = self
+        searchController.obscuresBackgroundDuringPresentation = false
+        searchController.searchBar.placeholder = "Search followers"
+
+        navigationItem.searchController = searchController
+        navigationItem.hidesSearchBarWhenScrolling = false
+
+        definesPresentationContext = true
     }
 
     private func configureCollectionView() {
@@ -97,13 +117,14 @@ final class FollowersViewController: UIViewController {
             return cell
         }
     }
-
-    private func applySnapshot() {
+    
+    //applying snapshot to store all the followers
+    private func applySnapshot(using users: [GitHubUser]) {
         var snapshot =
             NSDiffableDataSourceSnapshot<Int, GitHubUser>()
 
         snapshot.appendSections([0])
-        snapshot.appendItems(followers)
+        snapshot.appendItems(users)
 
         dataSource.apply(snapshot, animatingDifferences: true)
     }
@@ -129,8 +150,11 @@ final class FollowersViewController: UIViewController {
                 // Keep the followers already loaded.
                 followers.append(contentsOf: fetchedFollowers)
 
-                // Show all loaded followers in the collection view.
-                applySnapshot()
+                if isFiltering {
+                    filterFollowers(searchText: searchController.searchBar.text ?? "")
+                } else {
+                    applySnapshot(using: followers)
+                }
 
                 // A short page means we reached the end.
                 hasMoreFollowers = fetchedFollowers.count == 100
@@ -164,6 +188,27 @@ final class FollowersViewController: UIViewController {
                 )
             }
         }
+    }
+    
+    private func filterFollowers(searchText: String) {
+        let text = searchText.trimmingCharacters(
+            in: .whitespacesAndNewlines
+        )
+
+        if text.isEmpty {
+            isFiltering = false
+            filteredFollowers = []
+            applySnapshot(using: followers)
+            return
+        }
+
+        isFiltering = true
+
+        filteredFollowers = followers.filter {
+            $0.login.localizedCaseInsensitiveContains(text)
+        }
+
+        applySnapshot(using: filteredFollowers)
     }
 
     private func showAlert(title: String, message: String) {
@@ -207,5 +252,16 @@ extension FollowersViewController: UICollectionViewDelegateFlowLayout {
         if indexPath.item >= threshold {
             loadFollowers(page: currentPage)
         }
+    }
+}
+
+extension FollowersViewController: UISearchResultsUpdating {
+
+    func updateSearchResults(
+        for searchController: UISearchController
+    ) {
+        filterFollowers(
+            searchText: searchController.searchBar.text ?? ""
+        )
     }
 }

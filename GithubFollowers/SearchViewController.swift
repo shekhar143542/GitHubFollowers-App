@@ -11,6 +11,7 @@ final class SearchViewController: UIViewController {
     private let logoImageView = UIImageView()
     private let titleLabel = UILabel()
     private let usernameTextField = UITextField()
+    private let bottomTabBar = UITabBar()
     private let getFollowersButton = UIButton(type: .system)
 
     override func viewDidLoad() {
@@ -22,39 +23,89 @@ final class SearchViewController: UIViewController {
         configureTextField()
         configureButton()
         configureLayout()
+        configureTabBar() 
     }
+    
+    
+    
+    private func configureTabBar() {
+        let searchItem = UITabBarItem(
+            title: "Search",
+            image: UIImage(systemName: "magnifyingglass"),
+            tag: 0
+        )
+
+        let favoritesItem = UITabBarItem(
+            title: "Favorites",
+            image: UIImage(systemName: "star.fill"),
+            tag: 1
+        )
+
+        bottomTabBar.items = [searchItem, favoritesItem]
+        bottomTabBar.selectedItem = searchItem
+        bottomTabBar.tintColor = .systemGreen
+        bottomTabBar.unselectedItemTintColor = .secondaryLabel
+
+        view.addSubview(bottomTabBar)
+        bottomTabBar.translatesAutoresizingMaskIntoConstraints = false
+
+        NSLayoutConstraint.activate([
+            bottomTabBar.leadingAnchor.constraint(
+                equalTo: view.leadingAnchor
+            ),
+            bottomTabBar.trailingAnchor.constraint(
+                equalTo: view.trailingAnchor
+            ),
+            bottomTabBar.bottomAnchor.constraint(
+                equalTo: view.safeAreaLayoutGuide.bottomAnchor,
+            )
+        ])
+    }
+
 
     private func configureView() {
         view.backgroundColor = .systemBackground
     }
 
     private func configureLogo() {
-        logoImageView.image = UIImage(
-            systemName: "person.3.fill"
-        )
-        logoImageView.tintColor = .label
+
+        logoImageView.image = UIImage(named: "GitHub-Logo-followers")
         logoImageView.contentMode = .scaleAspectFit
+        logoImageView.clipsToBounds = true
     }
 
     private func configureTitle() {
-        titleLabel.text = "GitHub Followers"
+        titleLabel.text = "Followers"
         titleLabel.font = .systemFont(
             ofSize: 28,
             weight: .bold
         )
         titleLabel.textAlignment = .center
-        titleLabel.numberOfLines = 0
+        titleLabel.textColor = .label
+        titleLabel.numberOfLines = 1
     }
 
+
     private func configureTextField() {
-        usernameTextField.placeholder = "Enter GitHub username"
-        usernameTextField.borderStyle = .roundedRect
+        usernameTextField.placeholder = "Enter a username"
+        usernameTextField.font = .systemFont(ofSize: 20)
+        usernameTextField.textAlignment = .center
+        usernameTextField.textColor = .label
+        usernameTextField.tintColor = .systemGreen
+        usernameTextField.backgroundColor = .systemBackground
+
+        usernameTextField.layer.borderWidth = 2
+        usernameTextField.layer.borderColor = UIColor.darkGray.cgColor
+        usernameTextField.layer.cornerRadius = 12
+
         usernameTextField.autocapitalizationType = .none
         usernameTextField.autocorrectionType = .no
         usernameTextField.returnKeyType = .search
         usernameTextField.clearButtonMode = .whileEditing
         usernameTextField.accessibilityLabel = "GitHub username"
     }
+
+
 
     private func configureButton() {
         getFollowersButton.setTitle(
@@ -63,17 +114,13 @@ final class SearchViewController: UIViewController {
         )
 
         getFollowersButton.titleLabel?.font = .systemFont(
-            ofSize: 18,
+            ofSize: 20,
             weight: .semibold
         )
 
-        getFollowersButton.backgroundColor = .label
-        getFollowersButton.setTitleColor(
-            .systemBackground,
-            for: .normal
-        )
-
-        getFollowersButton.layer.cornerRadius = 12
+        getFollowersButton.backgroundColor = .systemGreen
+        getFollowersButton.setTitleColor(.white, for: .normal)
+        getFollowersButton.layer.cornerRadius = 16
 
         getFollowersButton.addTarget(
             self,
@@ -82,45 +129,76 @@ final class SearchViewController: UIViewController {
         )
     }
 
+
+
     private func configureLayout() {
-        let stackView = UIStackView(
+        let headerStack = UIStackView(
             arrangedSubviews: [
                 logoImageView,
-                titleLabel,
-                usernameTextField,
-                getFollowersButton
+                titleLabel
             ]
         )
 
-        stackView.axis = .vertical
-        stackView.spacing = 24
-        stackView.alignment = .fill
+        headerStack.axis = .vertical
+        headerStack.alignment = .center
+        headerStack.spacing = 8
 
-        view.addSubview(stackView)
+        view.addSubview(headerStack)
+        view.addSubview(usernameTextField)
+        view.addSubview(getFollowersButton)
 
-        stackView.translatesAutoresizingMaskIntoConstraints = false
+        headerStack.translatesAutoresizingMaskIntoConstraints = false
+        usernameTextField.translatesAutoresizingMaskIntoConstraints = false
+        getFollowersButton.translatesAutoresizingMaskIntoConstraints = false
 
         NSLayoutConstraint.activate([
+            headerStack.topAnchor.constraint(
+                equalTo: view.safeAreaLayoutGuide.topAnchor,
+                constant: 120
+            ),
+            headerStack.centerXAnchor.constraint(
+                equalTo: view.centerXAnchor
+            ),
+
             logoImageView.heightAnchor.constraint(
-                equalToConstant: 80
+                equalToConstant: 220
+            ),
+            logoImageView.widthAnchor.constraint(
+                equalToConstant: 280
             ),
 
-            getFollowersButton.heightAnchor.constraint(
-                equalToConstant: 52
+            titleLabel.heightAnchor.constraint(
+                equalToConstant: 40
             ),
 
-            stackView.leadingAnchor.constraint(
+            usernameTextField.topAnchor.constraint(
+                equalTo: headerStack.bottomAnchor,
+                constant: 50
+            ),
+            usernameTextField.leadingAnchor.constraint(
                 equalTo: view.safeAreaLayoutGuide.leadingAnchor,
                 constant: 24
             ),
-
-            stackView.trailingAnchor.constraint(
+            usernameTextField.trailingAnchor.constraint(
                 equalTo: view.safeAreaLayoutGuide.trailingAnchor,
                 constant: -24
             ),
+            usernameTextField.heightAnchor.constraint(
+                equalToConstant: 64
+            ),
 
-            stackView.centerYAnchor.constraint(
-                equalTo: view.safeAreaLayoutGuide.centerYAnchor
+            getFollowersButton.leadingAnchor.constraint(
+                equalTo: usernameTextField.leadingAnchor
+            ),
+            getFollowersButton.trailingAnchor.constraint(
+                equalTo: usernameTextField.trailingAnchor
+            ),
+            getFollowersButton.heightAnchor.constraint(
+                equalToConstant: 76
+            ),
+            getFollowersButton.bottomAnchor.constraint(
+                lessThanOrEqualTo: view.safeAreaLayoutGuide.bottomAnchor,
+                constant: -140
             )
         ])
     }
@@ -210,4 +288,9 @@ final class SearchViewController: UIViewController {
 
         present(alert, animated: true)
     }
+}
+
+
+#Preview {
+    SearchViewController()
 }
