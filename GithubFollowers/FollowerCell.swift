@@ -1,6 +1,4 @@
 
-
-
 import UIKit
 import GitHubNetworking
 
@@ -10,6 +8,9 @@ final class FollowerCell: UICollectionViewCell {
 
     private let avatarImageView = UIImageView()
     private let usernameLabel = UILabel()
+
+    // Identifies the image this cell is currently expecting.
+    private var representedURL: URL?
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -23,11 +24,20 @@ final class FollowerCell: UICollectionViewCell {
         fatalError("init(coder:) has not been implemented")
     }
 
+    override func prepareForReuse() {
+        super.prepareForReuse()
+
+        // Prevent an old image from appearing for another user.
+        representedURL = nil
+                avatarImageView.image = UIImage(
+            systemName: "person.crop.circle.fill"
+        )
+    }
+
     private func configureAvatar() {
         avatarImageView.image = UIImage(
             systemName: "person.crop.circle.fill"
         )
-
         avatarImageView.tintColor = .secondaryLabel
         avatarImageView.contentMode = .scaleAspectFill
         avatarImageView.clipsToBounds = true
@@ -39,7 +49,6 @@ final class FollowerCell: UICollectionViewCell {
             ofSize: 13,
             weight: .medium
         )
-
         usernameLabel.textAlignment = .center
         usernameLabel.numberOfLines = 1
         usernameLabel.lineBreakMode = .byTruncatingTail
@@ -47,10 +56,7 @@ final class FollowerCell: UICollectionViewCell {
 
     private func configureLayout() {
         let stackView = UIStackView(
-            arrangedSubviews: [
-                avatarImageView,
-                usernameLabel
-            ]
+            arrangedSubviews: [avatarImageView, usernameLabel]
         )
 
         stackView.axis = .vertical
@@ -67,7 +73,6 @@ final class FollowerCell: UICollectionViewCell {
             avatarImageView.heightAnchor.constraint(
                 equalToConstant: 60
             ),
-
             stackView.topAnchor.constraint(
                 equalTo: contentView.topAnchor,
                 constant: 8
@@ -89,6 +94,32 @@ final class FollowerCell: UICollectionViewCell {
 
     func configure(with follower: GitHubUser) {
         usernameLabel.text = follower.login
+
+        // Show the placeholder while the image loads.
+        avatarImageView.image = UIImage(
+            systemName: "person.crop.circle.fill"
+        )
+
+        let url = follower.avatarURL
+        representedURL = url
+
+        Task {
+            do {
+                let image = try await ImageCacheManager.shared.getImage(
+                    for: url
+                )
+
+                // Cells are reused, so ensure this is still
+                // the correct image for the current follower.
+                guard representedURL == url else {
+                    return
+                }
+
+                avatarImageView.image = image
+
+            } catch {
+                // Keep the placeholder if image loading fails.
+            }
+        }
     }
 }
-

@@ -1,3 +1,4 @@
+
 import UIKit
 import GitHubNetworking
 
@@ -8,8 +9,14 @@ final class FollowersViewController: UIViewController {
 
     private var followers: [GitHubUser] = []
 
+    // Pagination state
+    private var currentPage = 1
+    private var hasMoreFollowers = true
+    private var isLoadingPage = false
+
     private var collectionView: UICollectionView!
-    private var dataSource: UICollectionViewDiffableDataSource<Int, GitHubUser>!
+    private var dataSource:
+        UICollectionViewDiffableDataSource<Int, GitHubUser>!
 
     init(username: String) {
         self.username = username
@@ -28,7 +35,8 @@ final class FollowersViewController: UIViewController {
 
         configureCollectionView()
         configureDataSource()
-        fetchFollowers()
+
+        loadFollowers(page: currentPage)
     }
 
     private func configureCollectionView() {
@@ -86,14 +94,11 @@ final class FollowersViewController: UIViewController {
             ) as! FollowerCell
 
             cell.configure(with: follower)
-
             return cell
         }
     }
 
-    private func applySnapshot(
-        using followers: [GitHubUser]
-    ) {
+    private func applySnapshot() {
         var snapshot =
             NSDiffableDataSourceSnapshot<Int, GitHubUser>()
 
@@ -103,18 +108,37 @@ final class FollowersViewController: UIViewController {
         dataSource.apply(snapshot, animatingDifferences: true)
     }
 
-    private func fetchFollowers() {
+    private func loadFollowers(page: Int) {
+        guard !isLoadingPage && hasMoreFollowers else {
+            return
+        }
+
+        isLoadingPage = true
+
         Task {
+            defer {
+                isLoadingPage = false
+            }
+
             do {
                 let fetchedFollowers = try await api.fetchFollowers(
                     username: username,
-                    page: 1
+                    page: page
                 )
 
-                followers = fetchedFollowers
-                applySnapshot(using: followers)
+                // Keep the followers already loaded.
+                followers.append(contentsOf: fetchedFollowers)
 
-                if followers.isEmpty {
+                // Show all loaded followers in the collection view.
+                applySnapshot()
+
+                // A short page means we reached the end.
+                hasMoreFollowers = fetchedFollowers.count == 100
+
+                // Remember the next page to request.
+                currentPage = page + 1
+
+                if page == 1 && followers.isEmpty {
                     showAlert(
                         title: "No Followers",
                         message: "This user doesn't have any followers yet."
@@ -142,10 +166,7 @@ final class FollowersViewController: UIViewController {
         }
     }
 
-    private func showAlert(
-        title: String,
-        message: String
-    ) {
+    private func showAlert(title: String, message: String) {
         let alert = UIAlertController(
             title: title,
             message: message,
@@ -160,8 +181,7 @@ final class FollowersViewController: UIViewController {
     }
 }
 
-extension FollowersViewController:
-    UICollectionViewDelegateFlowLayout {
+extension FollowersViewController: UICollectionViewDelegateFlowLayout {
 
     func collectionView(
         _ collectionView: UICollectionView,
@@ -175,5 +195,17 @@ extension FollowersViewController:
 
         return CGSize(width: itemWidth, height: 120)
     }
-}
 
+    func collectionView(
+        _ collectionView: UICollectionView,
+        willDisplay cell: UICollectionViewCell,
+        forItemAt indexPath: IndexPath
+    ) {
+        // Start loading when we approach the last 10 followers.
+        let threshold = max(followers.count - 10, 0)
+
+        if indexPath.item >= threshold {
+            loadFollowers(page: currentPage)
+        }
+    }
+}
