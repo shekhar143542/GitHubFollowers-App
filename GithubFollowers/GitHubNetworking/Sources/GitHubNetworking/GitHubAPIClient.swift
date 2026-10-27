@@ -104,6 +104,52 @@ public struct GitHubAPIClient {
             from: data
         )
     }
+    
+    
+    public func fetchRepositories(
+        username: String,
+        page: Int = 1
+    ) async throws -> [GitHubRepository] {
+
+        guard let url = URL(
+            string: "https://api.github.com/users/\(username)/repos?per_page=100&page=\(page)&sort=updated"
+        ) else {
+            throw GitHubAPIError.invalidURL
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue(
+            "application/vnd.github+json",
+            forHTTPHeaderField: "Accept"
+        )
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw GitHubAPIError.invalidResponse
+        }
+
+        switch httpResponse.statusCode {
+        case 200:
+            return try JSONDecoder().decode(
+                [GitHubRepository].self,
+                from: data
+            )
+
+        case 404:
+            throw GitHubAPIError.userNotFound
+
+        case 403, 429:
+            throw GitHubAPIError.rateLimitExceeded
+
+        default:
+            throw GitHubAPIError.requestFailed(
+                statusCode: httpResponse.statusCode
+            )
+        }
+    }
+
 
 
 }

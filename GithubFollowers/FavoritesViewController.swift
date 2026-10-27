@@ -170,6 +170,7 @@ final class FavoritesViewController: UIViewController {
 
 extension FavoritesViewController: UITableViewDelegate {
 
+
     func tableView(
         _ tableView: UITableView,
         didSelectRowAt indexPath: IndexPath
@@ -180,9 +181,36 @@ extension FavoritesViewController: UITableViewDelegate {
             return
         }
 
-        // Open the selected user's profile.
         let profileView = ProfileView(
-            username: favorite.login
+            username: favorite.login,
+            onGetFollowers: { [weak self] username in
+                guard let self else { return }
+
+                let followersVC = FollowersViewController(
+                    username: username
+                )
+
+                self.navigationController?.pushViewController(
+                    followersVC,
+                    animated: true
+                )
+            },
+            onGetRepositories: { [weak self] username in
+                guard let self else { return }
+
+                let repositoriesView = RepositoriesView(
+                    username: username
+                )
+
+                let hostingController = UIHostingController(
+                    rootView: repositoriesView
+                )
+
+                self.navigationController?.pushViewController(
+                    hostingController,
+                    animated: true
+                )
+            }
         )
 
         let hostingController = UIHostingController(
@@ -196,6 +224,7 @@ extension FavoritesViewController: UITableViewDelegate {
             animated: true
         )
     }
+
 
     // Swipe to Delete
 

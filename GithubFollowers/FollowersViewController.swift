@@ -386,6 +386,7 @@ extension FollowersViewController: UICollectionViewDelegateFlowLayout {
             return
         }
 
+      
         let profileView = ProfileView(
             username: follower.login,
             onGetFollowers: { [weak self] username in
@@ -397,6 +398,22 @@ extension FollowersViewController: UICollectionViewDelegateFlowLayout {
 
                 self.navigationController?.pushViewController(
                     followersVC,
+                    animated: true
+                )
+            },
+            onGetRepositories: { [weak self] username in
+                guard let self else { return }
+
+                let repositoriesView = RepositoriesView(
+                    username: username
+                )
+
+                let hostingController = UIHostingController(
+                    rootView: repositoriesView
+                )
+
+                self.navigationController?.pushViewController(
+                    hostingController,
                     animated: true
                 )
             }

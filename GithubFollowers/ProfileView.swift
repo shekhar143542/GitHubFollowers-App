@@ -7,18 +7,23 @@ struct ProfileView: View {
     @StateObject private var viewModel: ProfileViewModel
     
     var onGetFollowers: ((String) -> Void)?
+    var onGetRepositories: ((String) -> Void)?
     @State private var isFavorite = false
 
+  
     init(
         username: String,
-        onGetFollowers: ((String) -> Void)? = nil
+        onGetFollowers: ((String) -> Void)? = nil,
+        onGetRepositories: ((String) -> Void)? = nil
     ) {
         _viewModel = StateObject(
             wrappedValue: ProfileViewModel(username: username)
         )
 
         self.onGetFollowers = onGetFollowers
+        self.onGetRepositories = onGetRepositories
     }
+
 
     var body: some View {
         Group {
@@ -127,6 +132,21 @@ struct ProfileView: View {
                 }
                 .padding(.horizontal, 24)
                 .padding(.top, 12)
+               
+                Button {
+                    onGetRepositories?(user.login)
+                } label: {
+                    Text("Get Repositories")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .foregroundStyle(.white)
+                        .background(Color.green)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+                .padding(.horizontal, 24)
+                .padding(.top, 12)
+
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 24)
