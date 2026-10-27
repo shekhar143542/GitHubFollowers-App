@@ -1,6 +1,7 @@
 
 import UIKit
 import GitHubNetworking
+import SwiftUI
 
 final class FollowersViewController: UIViewController {
 
@@ -16,6 +17,8 @@ final class FollowersViewController: UIViewController {
     private let searchController = UISearchController(
         searchResultsController: nil
     )
+    
+    private let emptyStateLabel = UILabel()
 
     // Pagination state
     private var currentPage = 1
@@ -43,9 +46,27 @@ final class FollowersViewController: UIViewController {
 
         configureCollectionView()
         configureDataSource()
+        configureEmptyStateLabel()
         configureSearchController()
 
         loadFollowers(page: currentPage)
+    }
+    
+    
+    private func updateEmptyState(
+        displayedUsers: [GitHubUser]
+    ) {
+        if displayedUsers.isEmpty {
+            emptyStateLabel.isHidden = false
+
+            if isFiltering {
+                emptyStateLabel.text = "No Matching Followers"
+            } else {
+                emptyStateLabel.text = "No Followers"
+            }
+        } else {
+            emptyStateLabel.isHidden = true
+        }
     }
     
     private func configureSearchController() {
@@ -102,6 +123,8 @@ final class FollowersViewController: UIViewController {
 
         collectionView.delegate = self
     }
+    
+    
 
     private func configureDataSource() {
         dataSource = UICollectionViewDiffableDataSource<Int, GitHubUser>(
@@ -125,8 +148,13 @@ final class FollowersViewController: UIViewController {
 
         snapshot.appendSections([0])
         snapshot.appendItems(users)
+        
+        dataSource.apply(
+                snapshot,
+                animatingDifferences: true
+            )
 
-        dataSource.apply(snapshot, animatingDifferences: true)
+            updateEmptyState(displayedUsers: users)
     }
 
     private func loadFollowers(page: Int) {
@@ -162,13 +190,6 @@ final class FollowersViewController: UIViewController {
                 // Remember the next page to request.
                 currentPage = page + 1
 
-                if page == 1 && followers.isEmpty {
-                    showAlert(
-                        title: "No Followers",
-                        message: "This user doesn't have any followers yet."
-                    )
-                }
-
             } catch GitHubAPIError.userNotFound {
                 showAlert(
                     title: "User Not Found",
@@ -189,6 +210,40 @@ final class FollowersViewController: UIViewController {
             }
         }
     }
+    
+    
+    private func configureEmptyStateLabel() {
+        emptyStateLabel.textAlignment = .center
+        emptyStateLabel.textColor = .secondaryLabel
+        emptyStateLabel.font = .systemFont(
+            ofSize: 18,
+            weight: .medium
+        )
+        emptyStateLabel.numberOfLines = 0
+        emptyStateLabel.isHidden = true
+
+        view.addSubview(emptyStateLabel)
+
+        emptyStateLabel.translatesAutoresizingMaskIntoConstraints = false
+
+        NSLayoutConstraint.activate([
+            emptyStateLabel.centerXAnchor.constraint(
+                equalTo: view.centerXAnchor
+            ),
+            emptyStateLabel.centerYAnchor.constraint(
+                equalTo: view.safeAreaLayoutGuide.centerYAnchor
+            ),
+            emptyStateLabel.leadingAnchor.constraint(
+                greaterThanOrEqualTo: view.leadingAnchor,
+                constant: 24
+            ),
+            emptyStateLabel.trailingAnchor.constraint(
+                lessThanOrEqualTo: view.trailingAnchor,
+                constant: -24
+            )
+        ])
+    }
+    
     
     private func filterFollowers(searchText: String) {
         let text = searchText.trimmingCharacters(
@@ -253,6 +308,46 @@ extension FollowersViewController: UICollectionViewDelegateFlowLayout {
             loadFollowers(page: currentPage)
         }
     }
+    
+    
+    func collectionView(
+        _ collectionView: UICollectionView,
+        didSelectItemAt indexPath: IndexPath
+    ) {
+        guard let follower = dataSource.itemIdentifier(
+            for: indexPath
+        ) else {
+            return
+        }
+
+        let profileView = ProfileView(
+            username: follower.login,
+            onGetFollowers: { [weak self] username in
+                guard let self else { return }
+
+                let followersVC = FollowersViewController(
+                    username: username
+                )
+
+                self.navigationController?.pushViewController(
+                    followersVC,
+                    animated: true
+                )
+            }
+        )
+
+        let hostingController = UIHostingController(
+            rootView: profileView
+        )
+
+        hostingController.title = "Profile"
+
+        navigationController?.pushViewController(
+            hostingController,
+            animated: true
+        )
+    }
+
 }
 
 extension FollowersViewController: UISearchResultsUpdating {
