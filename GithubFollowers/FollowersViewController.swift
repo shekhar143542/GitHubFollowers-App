@@ -1,4 +1,3 @@
-
 import UIKit
 import GitHubNetworking
 import SwiftUI
@@ -9,16 +8,17 @@ final class FollowersViewController: UIViewController {
     private let api = GitHubAPIClient()
 
     private var followers: [GitHubUser] = []
-    
-    //filtering properties
+
+    // filtering properties
     private var filteredFollowers: [GitHubUser] = []
     private var isFiltering: Bool = false
 
     private let searchController = UISearchController(
         searchResultsController: nil
     )
-    
+
     private let emptyStateLabel = UILabel()
+    private let activityIndicator = UIActivityIndicatorView(style: .large)
 
     // Pagination state
     private var currentPage = 1
@@ -41,22 +41,60 @@ final class FollowersViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        title = "\(username)'s Followers"
-        view.backgroundColor = .systemBackground
-
+        configureViewController()
         configureCollectionView()
         configureDataSource()
         configureEmptyStateLabel()
+        configureActivityIndicator()
         configureSearchController()
 
         loadFollowers(page: currentPage)
     }
-    
-    
+
+    private func configureViewController() {
+        title = "\(username)'s Followers"
+        view.backgroundColor = .systemBackground
+
+        let addButton = UIBarButtonItem(
+            barButtonSystemItem: .add,
+            target: self,
+            action: #selector(addButtonTapped)
+        )
+        navigationItem.rightBarButtonItem = addButton
+    }
+
+    @objc private func addButtonTapped() {
+        Task {
+            do {
+                let user = try await api.fetchUser(username: username)
+                FavoritesManager.shared.addFavorite(user)
+                showAlert(
+                    title: "Success!",
+                    message: "You have successfully favorited \(username) 🎉"
+                )
+            } catch GitHubAPIError.userNotFound {
+                showAlert(
+                    title: "User Not Found",
+                    message: "The GitHub user could not be found."
+                )
+            } catch GitHubAPIError.rateLimitExceeded {
+                showAlert(
+                    title: "API Limit Reached",
+                    message: "GitHub rate limit exceeded. Please try again later."
+                )
+            } catch {
+                showAlert(
+                    title: "Unable to Favorite",
+                    message: "Something went wrong while favoriting this user."
+                )
+            }
+        }
+    }
+
     private func updateEmptyState(
         displayedUsers: [GitHubUser]
     ) {
-        if displayedUsers.isEmpty {
+        if displayedUsers.isEmpty && !isLoadingPage {
             emptyStateLabel.isHidden = false
 
             if isFiltering {
@@ -68,7 +106,7 @@ final class FollowersViewController: UIViewController {
             emptyStateLabel.isHidden = true
         }
     }
-    
+
     private func configureSearchController() {
         searchController.searchResultsUpdater = self
         searchController.obscuresBackgroundDuringPresentation = false
@@ -123,8 +161,6 @@ final class FollowersViewController: UIViewController {
 
         collectionView.delegate = self
     }
-    
-    
 
     private func configureDataSource() {
         dataSource = UICollectionViewDiffableDataSource<Int, GitHubUser>(
@@ -140,21 +176,22 @@ final class FollowersViewController: UIViewController {
             return cell
         }
     }
-    
-    //applying snapshot to store all the followers
+
     private func applySnapshot(using users: [GitHubUser]) {
-        var snapshot =
-            NSDiffableDataSourceSnapshot<Int, GitHubUser>()
-
+        var snapshot = NSDiffableDataSourceSnapshot<Int, GitHubUser>()
         snapshot.appendSections([0])
-        snapshot.appendItems(users)
-        
-        dataSource.apply(
-                snapshot,
-                animatingDifferences: true
-            )
 
-            updateEmptyState(displayedUsers: users)
+        // Filter duplicates by id to ensure DiffableDataSource identifiers remain unique
+        var seenIDs = Set<Int>()
+        let uniqueUsers = users.filter { seenIDs.insert($0.id).inserted }
+        snapshot.appendItems(uniqueUsers)
+
+        dataSource.apply(
+            snapshot,
+            animatingDifferences: true
+        )
+
+        updateEmptyState(displayedUsers: uniqueUsers)
     }
 
     private func loadFollowers(page: Int) {
@@ -163,10 +200,14 @@ final class FollowersViewController: UIViewController {
         }
 
         isLoadingPage = true
+        if page == 1 && followers.isEmpty {
+            activityIndicator.startAnimating()
+        }
 
         Task {
             defer {
                 isLoadingPage = false
+                activityIndicator.stopAnimating()
             }
 
             do {
@@ -175,8 +216,12 @@ final class FollowersViewController: UIViewController {
                     page: page
                 )
 
-                // Keep the followers already loaded.
-                followers.append(contentsOf: fetchedFollowers)
+                // Append newly fetched followers
+                for follower in fetchedFollowers {
+                    if !followers.contains(where: { $0.id == follower.id }) {
+                        followers.append(follower)
+                    }
+                }
 
                 if isFiltering {
                     filterFollowers(searchText: searchController.searchBar.text ?? "")
@@ -210,8 +255,7 @@ final class FollowersViewController: UIViewController {
             }
         }
     }
-    
-    
+
     private func configureEmptyStateLabel() {
         emptyStateLabel.textAlignment = .center
         emptyStateLabel.textColor = .secondaryLabel
@@ -223,7 +267,6 @@ final class FollowersViewController: UIViewController {
         emptyStateLabel.isHidden = true
 
         view.addSubview(emptyStateLabel)
-
         emptyStateLabel.translatesAutoresizingMaskIntoConstraints = false
 
         NSLayoutConstraint.activate([
@@ -243,8 +286,24 @@ final class FollowersViewController: UIViewController {
             )
         ])
     }
-    
-    
+
+    private func configureActivityIndicator() {
+        activityIndicator.hidesWhenStopped = true
+        activityIndicator.color = .systemGreen
+
+        view.addSubview(activityIndicator)
+        activityIndicator.translatesAutoresizingMaskIntoConstraints = false
+
+        NSLayoutConstraint.activate([
+            activityIndicator.centerXAnchor.constraint(
+                equalTo: view.centerXAnchor
+            ),
+            activityIndicator.centerYAnchor.constraint(
+                equalTo: view.safeAreaLayoutGuide.centerYAnchor
+            )
+        ])
+    }
+
     private func filterFollowers(searchText: String) {
         let text = searchText.trimmingCharacters(
             in: .whitespacesAndNewlines
@@ -289,6 +348,9 @@ extension FollowersViewController: UICollectionViewDelegateFlowLayout {
         sizeForItemAt indexPath: IndexPath
     ) -> CGSize {
         let totalSpacing: CGFloat = 32 + 16
+        guard collectionView.bounds.width > totalSpacing else {
+            return CGSize(width: 80, height: 120)
+        }
         let itemWidth = (
             collectionView.bounds.width - totalSpacing
         ) / 3
@@ -301,6 +363,11 @@ extension FollowersViewController: UICollectionViewDelegateFlowLayout {
         willDisplay cell: UICollectionViewCell,
         forItemAt indexPath: IndexPath
     ) {
+        // If filtering, don't paginate
+        guard !isFiltering, hasMoreFollowers, !isLoadingPage else {
+            return
+        }
+
         // Start loading when we approach the last 10 followers.
         let threshold = max(followers.count - 10, 0)
 
@@ -308,8 +375,7 @@ extension FollowersViewController: UICollectionViewDelegateFlowLayout {
             loadFollowers(page: currentPage)
         }
     }
-    
-    
+
     func collectionView(
         _ collectionView: UICollectionView,
         didSelectItemAt indexPath: IndexPath
@@ -347,7 +413,6 @@ extension FollowersViewController: UICollectionViewDelegateFlowLayout {
             animated: true
         )
     }
-
 }
 
 extension FollowersViewController: UISearchResultsUpdating {

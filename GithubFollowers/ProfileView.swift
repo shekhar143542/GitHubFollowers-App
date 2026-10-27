@@ -7,6 +7,7 @@ struct ProfileView: View {
     @StateObject private var viewModel: ProfileViewModel
     
     var onGetFollowers: ((String) -> Void)?
+    @State private var isFavorite = false
 
     init(
         username: String,
@@ -37,6 +38,10 @@ struct ProfileView: View {
         }
         .task {
             await viewModel.loadProfile()
+
+            if let user = viewModel.user {
+                updateFavoriteStatus(for: user)
+            }
         }
         .navigationTitle("Profile")
         .navigationBarTitleDisplayMode(.inline)
@@ -82,6 +87,34 @@ struct ProfileView: View {
                 .padding(.top, 8)
                 
                 Button {
+                    if isFavorite {
+                        if let favorite = FavoritesManager.shared
+                            .getFavorites()
+                            .first(where: { $0.id == user.id }) {
+                            FavoritesManager.shared.removeFavorite(favorite)
+                        }
+                    } else {
+                        FavoritesManager.shared.addFavorite(user)
+                    }
+
+                    updateFavoriteStatus(for: user)
+                } label: {
+                    Label(
+                        isFavorite ? "Added to Favorites" : "Add to Favorites",
+                        systemImage: isFavorite ? "star.fill" : "star"
+                    )
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .foregroundStyle(.white)
+                    .background(isFavorite ? Color.green : Color.blue)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+                .padding(.horizontal, 24)
+                .padding(.top, 12)
+
+                
+                Button {
                     onGetFollowers?(user.login)
                 } label: {
                     Text("Get Followers")
@@ -99,6 +132,12 @@ struct ProfileView: View {
             .padding(.vertical, 24)
         }
     }
+    
+    private func updateFavoriteStatus(for user: GitHubUser) {
+        isFavorite = FavoritesManager.shared
+            .getFavorites()
+            .contains { $0.id == user.id }
+    }
 
     private func statistic(
         title: String,
@@ -115,4 +154,6 @@ struct ProfileView: View {
         }
     }
 }
+
+
 

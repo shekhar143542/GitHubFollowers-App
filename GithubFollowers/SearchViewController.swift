@@ -4,7 +4,6 @@ import GitHubNetworking
 
 final class SearchViewController: UIViewController {
     
-    
     private let api = GitHubAPIClient()
     private var isFetching = false
 
@@ -25,8 +24,11 @@ final class SearchViewController: UIViewController {
         configureLayout()
         configureTabBar() 
     }
-    
-    
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        bottomTabBar.selectedItem = bottomTabBar.items?.first
+    }
     
     private func configureTabBar() {
         let searchItem = UITabBarItem(
@@ -57,18 +59,17 @@ final class SearchViewController: UIViewController {
                 equalTo: view.trailingAnchor
             ),
             bottomTabBar.bottomAnchor.constraint(
-                equalTo: view.safeAreaLayoutGuide.bottomAnchor,
+                equalTo: view.safeAreaLayoutGuide.bottomAnchor
             )
         ])
+        bottomTabBar.delegate = self
     }
-
 
     private func configureView() {
         view.backgroundColor = .systemBackground
     }
 
     private func configureLogo() {
-
         logoImageView.image = UIImage(named: "GitHub-Logo-followers")
         logoImageView.contentMode = .scaleAspectFit
         logoImageView.clipsToBounds = true
@@ -84,7 +85,6 @@ final class SearchViewController: UIViewController {
         titleLabel.textColor = .label
         titleLabel.numberOfLines = 1
     }
-
 
     private func configureTextField() {
         usernameTextField.placeholder = "Enter a username"
@@ -104,8 +104,6 @@ final class SearchViewController: UIViewController {
         usernameTextField.clearButtonMode = .whileEditing
         usernameTextField.accessibilityLabel = "GitHub username"
     }
-
-
 
     private func configureButton() {
         getFollowersButton.setTitle(
@@ -128,8 +126,6 @@ final class SearchViewController: UIViewController {
             for: .touchUpInside
         )
     }
-
-
 
     private func configureLayout() {
         let headerStack = UIStackView(
@@ -203,7 +199,6 @@ final class SearchViewController: UIViewController {
         ])
     }
 
-  
     @objc private func getFollowersTapped() {
         let username = usernameTextField.text?
             .trimmingCharacters(
@@ -267,8 +262,6 @@ final class SearchViewController: UIViewController {
         }
     }
 
-
-
     private func showAlert(
         title: String,
         message: String
@@ -290,6 +283,23 @@ final class SearchViewController: UIViewController {
     }
 }
 
+extension SearchViewController: UITabBarDelegate {
+
+    func tabBar(
+        _ tabBar: UITabBar,
+        didSelect item: UITabBarItem
+    ) {
+        guard item.tag == 1 else {
+            return
+        }
+
+        let favoritesVC = FavoritesViewController()
+        navigationController?.pushViewController(
+            favoritesVC,
+            animated: true
+        )
+    }
+}
 
 #Preview {
     SearchViewController()
