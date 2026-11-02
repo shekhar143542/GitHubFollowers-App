@@ -4,30 +4,23 @@ import UIKit
 
 struct HomeView: View {
     var body: some View {
-        SearchViewControllerRepresentable()
-            .ignoresSafeArea()
+        MainTabBarControllerRepresentable().ignoresSafeArea()
     }
 }
 
-struct SearchViewControllerRepresentable: UIViewControllerRepresentable {
+struct MainTabBarControllerRepresentable: UIViewControllerRepresentable {
 
     func makeUIViewController(
         context: Context
-    ) -> UINavigationController {
-        let searchVC = SearchViewController()
+    ) -> MainTabBarController {
 
-        let navigationController = UINavigationController(
-            rootViewController: searchVC
-        )
-
-        return navigationController
+        return MainTabBarController()
     }
 
     func updateUIViewController(
-        _ uiViewController: UINavigationController,
+        _ uiViewController: MainTabBarController,
         context: Context
     ) {
-        
     }
 }
 
