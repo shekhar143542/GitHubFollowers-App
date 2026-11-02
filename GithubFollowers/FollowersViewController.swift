@@ -26,8 +26,7 @@ final class FollowersViewController: UIViewController {
     private var isLoadingPage = false
 
     private var collectionView: UICollectionView!
-    private var dataSource:
-        UICollectionViewDiffableDataSource<Int, GitHubUser>!
+    private var dataSource:UICollectionViewDiffableDataSource<Int, Int>!
 
     init(username: String) {
         self.username = username
@@ -163,9 +162,18 @@ final class FollowersViewController: UIViewController {
     }
 
     private func configureDataSource() {
-        dataSource = UICollectionViewDiffableDataSource<Int, GitHubUser>(
+        dataSource = UICollectionViewDiffableDataSource<Int, Int>(
             collectionView: collectionView
-        ) { collectionView, indexPath, follower in
+        ) { [weak self] collectionView, indexPath, followerID in
+
+            guard
+                let self,
+                let follower = self.followers.first(where: {
+                    $0.id == followerID
+                })
+            else {
+                return nil
+            }
 
             let cell = collectionView.dequeueReusableCell(
                 withReuseIdentifier: FollowerCell.reuseIdentifier,
@@ -178,13 +186,18 @@ final class FollowersViewController: UIViewController {
     }
 
     private func applySnapshot(using users: [GitHubUser]) {
-        var snapshot = NSDiffableDataSourceSnapshot<Int, GitHubUser>()
+        var snapshot = NSDiffableDataSourceSnapshot<Int, Int>()
         snapshot.appendSections([0])
 
-        // Filter duplicates by id to ensure DiffableDataSource identifiers remain unique
+        // Keep each GitHub user ID unique.
         var seenIDs = Set<Int>()
-        let uniqueUsers = users.filter { seenIDs.insert($0.id).inserted }
-        snapshot.appendItems(uniqueUsers)
+
+        let uniqueUsers = users.filter {
+            seenIDs.insert($0.id).inserted
+        }
+
+        // Store IDs as the snapshot's item identifiers.
+        snapshot.appendItems(uniqueUsers.map(\.id))
 
         dataSource.apply(
             snapshot,
@@ -380,9 +393,10 @@ extension FollowersViewController: UICollectionViewDelegateFlowLayout {
         _ collectionView: UICollectionView,
         didSelectItemAt indexPath: IndexPath
     ) {
-        guard let follower = dataSource.itemIdentifier(
-            for: indexPath
-        ) else {
+        guard
+            let followerID = dataSource.itemIdentifier(for: indexPath),
+            let follower = followers.first(where: { $0.id == followerID })
+        else {
             return
         }
 

@@ -13,6 +13,7 @@ final class FavoritesViewController: UIViewController {
     )
 
     private let emptyStateLabel = UILabel()
+    private let favoriteCellReuseIdentifier = "FavoriteCell"
 
     private var dataSource: UITableViewDiffableDataSource<Int, FavoriteUser>!
 
@@ -40,6 +41,11 @@ final class FavoritesViewController: UIViewController {
         tableView.translatesAutoresizingMaskIntoConstraints = false
         tableView.delegate = self
         tableView.rowHeight = 70
+        
+        tableView.register(
+            UITableViewCell.self,
+            forCellReuseIdentifier: favoriteCellReuseIdentifier
+        )
 
         NSLayoutConstraint.activate([
             tableView.topAnchor.constraint(
@@ -101,26 +107,29 @@ final class FavoritesViewController: UIViewController {
             tableView: tableView
         ) { (tableView, indexPath, favorite) -> UITableViewCell? in
 
-            let cell = UITableViewCell(
-                style: .subtitle,
-                reuseIdentifier: nil
+            let cell = tableView.dequeueReusableCell(
+                withIdentifier: self.favoriteCellReuseIdentifier,
+                for: indexPath
             )
 
-            cell.textLabel?.text = favorite.login
-            cell.textLabel?.font = .systemFont(
+            var content = cell.defaultContentConfiguration()
+
+            content.text = favorite.login
+            content.textProperties.font = .systemFont(
                 ofSize: 17,
                 weight: .semibold
             )
 
-            cell.detailTextLabel?.text = favorite.htmlURL.absoluteString
-            cell.detailTextLabel?.textColor = .secondaryLabel
+            content.secondaryText = favorite.htmlURL.absoluteString
+            content.secondaryTextProperties.color = .secondaryLabel
 
-            cell.accessoryType = .disclosureIndicator
-
-            cell.imageView?.image = UIImage(
+            content.image = UIImage(
                 systemName: "person.crop.circle.fill"
             )
-            cell.imageView?.tintColor = .systemGreen
+            content.imageProperties.tintColor = .systemGreen
+
+            cell.contentConfiguration = content
+            cell.accessoryType = .disclosureIndicator
 
             let avatarURL = favorite.avatarURL
 
@@ -130,13 +139,27 @@ final class FavoritesViewController: UIViewController {
                 ) {
                     guard
                         let currentIndexPath = tableView.indexPath(for: cell),
-                        currentIndexPath == indexPath
+                        currentIndexPath == indexPath,
+                        self.dataSource.itemIdentifier(for: currentIndexPath)?.id == favorite.id
                     else {
                         return
                     }
 
-                    cell.imageView?.image = image
-                    cell.setNeedsLayout()
+                    var updatedContent = cell.defaultContentConfiguration()
+
+                    updatedContent.text = favorite.login
+                    updatedContent.textProperties.font = .systemFont(
+                        ofSize: 17,
+                        weight: .semibold
+                    )
+
+                    updatedContent.secondaryText = favorite.htmlURL.absoluteString
+                    updatedContent.secondaryTextProperties.color = .secondaryLabel
+
+                    updatedContent.image = image
+                    updatedContent.imageProperties.tintColor = .systemGreen
+
+                    cell.contentConfiguration = updatedContent
                 }
             }
 

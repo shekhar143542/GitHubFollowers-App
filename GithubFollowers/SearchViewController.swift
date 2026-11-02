@@ -1,16 +1,13 @@
-
 import UIKit
 import GitHubNetworking
 
 final class SearchViewController: UIViewController {
-    
+
     private let api = GitHubAPIClient()
     private var isFetching = false
-
     private let logoImageView = UIImageView()
     private let titleLabel = UILabel()
     private let usernameTextField = UITextField()
-    private let bottomTabBar = UITabBar()
     private let getFollowersButton = UIButton(type: .system)
 
     override func viewDidLoad() {
@@ -22,47 +19,7 @@ final class SearchViewController: UIViewController {
         configureTextField()
         configureButton()
         configureLayout()
-        configureTabBar() 
-    }
-
-    override func viewWillAppear(_ animated: Bool) {
-        super.viewWillAppear(animated)
-        bottomTabBar.selectedItem = bottomTabBar.items?.first
-    }
-    
-    private func configureTabBar() {
-        let searchItem = UITabBarItem(
-            title: "Search",
-            image: UIImage(systemName: "magnifyingglass"),
-            tag: 0
-        )
-
-        let favoritesItem = UITabBarItem(
-            title: "Favorites",
-            image: UIImage(systemName: "star.fill"),
-            tag: 1
-        )
-
-        bottomTabBar.items = [searchItem, favoritesItem]
-        bottomTabBar.selectedItem = searchItem
-        bottomTabBar.tintColor = .systemGreen
-        bottomTabBar.unselectedItemTintColor = .secondaryLabel
-
-        view.addSubview(bottomTabBar)
-        bottomTabBar.translatesAutoresizingMaskIntoConstraints = false
-
-        NSLayoutConstraint.activate([
-            bottomTabBar.leadingAnchor.constraint(
-                equalTo: view.leadingAnchor
-            ),
-            bottomTabBar.trailingAnchor.constraint(
-                equalTo: view.trailingAnchor
-            ),
-            bottomTabBar.bottomAnchor.constraint(
-                equalTo: view.safeAreaLayoutGuide.bottomAnchor
-            )
-        ])
-        bottomTabBar.delegate = self
+        configureDismissKeyboardTapGesture()
     }
 
     private func configureView() {
@@ -103,6 +60,7 @@ final class SearchViewController: UIViewController {
         usernameTextField.returnKeyType = .search
         usernameTextField.clearButtonMode = .whileEditing
         usernameTextField.accessibilityLabel = "GitHub username"
+        usernameTextField.delegate = self
     }
 
     private func configureButton() {
@@ -128,78 +86,85 @@ final class SearchViewController: UIViewController {
     }
 
     private func configureLayout() {
-        let headerStack = UIStackView(
+        let mainStack = UIStackView(
             arrangedSubviews: [
                 logoImageView,
-                titleLabel
+                titleLabel,
+                usernameTextField,
+                getFollowersButton
             ]
         )
 
-        headerStack.axis = .vertical
-        headerStack.alignment = .center
-        headerStack.spacing = 8
+        mainStack.axis = .vertical
+        mainStack.alignment = .fill
+        mainStack.distribution = .fill
+        mainStack.spacing = 24
 
-        view.addSubview(headerStack)
-        view.addSubview(usernameTextField)
-        view.addSubview(getFollowersButton)
+        mainStack.setCustomSpacing(8, after: logoImageView)
+        mainStack.setCustomSpacing(48, after: titleLabel)
 
-        headerStack.translatesAutoresizingMaskIntoConstraints = false
-        usernameTextField.translatesAutoresizingMaskIntoConstraints = false
-        getFollowersButton.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(mainStack)
+        mainStack.translatesAutoresizingMaskIntoConstraints = false
+
+        let topConstraint = mainStack.topAnchor.constraint(
+            equalTo: view.safeAreaLayoutGuide.topAnchor,
+            constant: 80
+        )
+        topConstraint.priority = UILayoutPriority(999)
+
+        let logoHeight = logoImageView.heightAnchor.constraint(equalToConstant: 220)
+        logoHeight.priority = UILayoutPriority(900)
 
         NSLayoutConstraint.activate([
-            headerStack.topAnchor.constraint(
-                equalTo: view.safeAreaLayoutGuide.topAnchor,
-                constant: 120
-            ),
-            headerStack.centerXAnchor.constraint(
-                equalTo: view.centerXAnchor
+            topConstraint,
+
+            mainStack.topAnchor.constraint(
+                greaterThanOrEqualTo: view.safeAreaLayoutGuide.topAnchor,
+                constant: 24
             ),
 
-            logoImageView.heightAnchor.constraint(
-                equalToConstant: 220
-            ),
-            logoImageView.widthAnchor.constraint(
-                equalToConstant: 280
-            ),
-
-            titleLabel.heightAnchor.constraint(
-                equalToConstant: 40
-            ),
-
-            usernameTextField.topAnchor.constraint(
-                equalTo: headerStack.bottomAnchor,
-                constant: 50
-            ),
-            usernameTextField.leadingAnchor.constraint(
+            mainStack.leadingAnchor.constraint(
                 equalTo: view.safeAreaLayoutGuide.leadingAnchor,
                 constant: 24
             ),
-            usernameTextField.trailingAnchor.constraint(
+
+            mainStack.trailingAnchor.constraint(
                 equalTo: view.safeAreaLayoutGuide.trailingAnchor,
                 constant: -24
             ),
-            usernameTextField.heightAnchor.constraint(
-                equalToConstant: 64
+
+            mainStack.bottomAnchor.constraint(
+                lessThanOrEqualTo: view.keyboardLayoutGuide.topAnchor,
+                constant: -24
             ),
 
-            getFollowersButton.leadingAnchor.constraint(
-                equalTo: usernameTextField.leadingAnchor
-            ),
-            getFollowersButton.trailingAnchor.constraint(
-                equalTo: usernameTextField.trailingAnchor
-            ),
-            getFollowersButton.heightAnchor.constraint(
-                equalToConstant: 76
-            ),
-            getFollowersButton.bottomAnchor.constraint(
-                lessThanOrEqualTo: view.safeAreaLayoutGuide.bottomAnchor,
-                constant: -140
-            )
+            logoHeight,
+            logoImageView.heightAnchor.constraint(greaterThanOrEqualToConstant: 80),
+
+            titleLabel.heightAnchor.constraint(equalToConstant: 40),
+
+            usernameTextField.heightAnchor.constraint(equalToConstant: 64),
+
+            getFollowersButton.heightAnchor.constraint(equalToConstant: 76)
         ])
     }
 
+    private func configureDismissKeyboardTapGesture() {
+        let tapGesture = UITapGestureRecognizer(
+            target: self,
+            action: #selector(dismissKeyboard)
+        )
+        tapGesture.delegate = self
+        view.addGestureRecognizer(tapGesture)
+    }
+
+    @objc private func dismissKeyboard() {
+        view.endEditing(true)
+    }
+
     @objc private func getFollowersTapped() {
+        usernameTextField.resignFirstResponder()
+
         let username = usernameTextField.text?
             .trimmingCharacters(
                 in: .whitespacesAndNewlines
@@ -219,11 +184,15 @@ final class SearchViewController: UIViewController {
 
         isFetching = true
         getFollowersButton.isEnabled = false
+        getFollowersButton.setTitle("Searching...", for: .normal)
+        getFollowersButton.alpha = 0.75
 
         Task {
             defer {
                 isFetching = false
                 getFollowersButton.isEnabled = true
+                getFollowersButton.setTitle("Get Followers", for: .normal)
+                getFollowersButton.alpha = 1.0
             }
 
             do {
@@ -234,6 +203,8 @@ final class SearchViewController: UIViewController {
                 let followersVC = FollowersViewController(
                     username: username
                 )
+
+                followersVC.hidesBottomBarWhenPushed = true
 
                 // Navigate to the Followers screen.
                 navigationController?.pushViewController(
@@ -283,21 +254,26 @@ final class SearchViewController: UIViewController {
     }
 }
 
-extension SearchViewController: UITabBarDelegate {
+extension SearchViewController: UITextFieldDelegate {
 
-    func tabBar(
-        _ tabBar: UITabBar,
-        didSelect item: UITabBarItem
-    ) {
-        guard item.tag == 1 else {
-            return
+    func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+        getFollowersTapped()
+        return true
+    }
+}
+
+extension SearchViewController: UIGestureRecognizerDelegate {
+
+    func gestureRecognizer(
+        _ gestureRecognizer: UIGestureRecognizer,
+        shouldReceive touch: UITouch
+    ) -> Bool {
+        if let touchedView = touch.view {
+            if touchedView.isDescendant(of: usernameTextField) || touchedView.isDescendant(of: getFollowersButton) {
+                return false
+            }
         }
-
-        let favoritesVC = FavoritesViewController()
-        navigationController?.pushViewController(
-            favoritesVC,
-            animated: true
-        )
+        return true
     }
 }
 
