@@ -34,7 +34,6 @@ final class FavoritesViewController: UIViewController {
     }
 
     //Table View Setup
-
     private func configureTableView() {
         view.addSubview(tableView)
 

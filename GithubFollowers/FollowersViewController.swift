@@ -8,6 +8,7 @@ final class FollowersViewController: UIViewController {
     private let api = GitHubAPIClient()
 
     private var followers: [GitHubUser] = []
+    private var followerIDs = Set<Int>()
 
     // filtering properties
     private var filteredFollowers: [GitHubUser] = []
@@ -69,7 +70,7 @@ final class FollowersViewController: UIViewController {
                 FavoritesManager.shared.addFavorite(user)
                 showAlert(
                     title: "Success!",
-                    message: "You have successfully favorited \(username) 🎉"
+                    message: "You have successfully favorited \(username)"
                 )
             } catch GitHubAPIError.userNotFound {
                 showAlert(
@@ -184,27 +185,19 @@ final class FollowersViewController: UIViewController {
             return cell
         }
     }
-
     private func applySnapshot(using users: [GitHubUser]) {
         var snapshot = NSDiffableDataSourceSnapshot<Int, Int>()
         snapshot.appendSections([0])
 
-        // Keep each GitHub user ID unique.
-        var seenIDs = Set<Int>()
-
-        let uniqueUsers = users.filter {
-            seenIDs.insert($0.id).inserted
-        }
-
         // Store IDs as the snapshot's item identifiers.
-        snapshot.appendItems(uniqueUsers.map(\.id))
+        snapshot.appendItems(users.map(\.id))
 
         dataSource.apply(
             snapshot,
             animatingDifferences: true
         )
 
-        updateEmptyState(displayedUsers: uniqueUsers)
+        updateEmptyState(displayedUsers: users)
     }
 
     private func loadFollowers(page: Int) {
@@ -228,10 +221,10 @@ final class FollowersViewController: UIViewController {
                     username: username,
                     page: page
                 )
-
+                
                 // Append newly fetched followers
                 for follower in fetchedFollowers {
-                    if !followers.contains(where: { $0.id == follower.id }) {
+                    if followerIDs.insert(follower.id).inserted {
                         followers.append(follower)
                     }
                 }
