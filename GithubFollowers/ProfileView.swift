@@ -55,12 +55,22 @@ struct ProfileView: View {
     private func profileContent(user: GitHubUser) -> some View {
         ScrollView {
             VStack(spacing: 16) {
-                AsyncImage(url: user.avatarURL) { image in
-                    image
-                        .resizable()
-                        .scaledToFill()
-                } placeholder: {
-                    ProgressView()
+                AsyncImage(url: user.avatarURL) { phase in
+                    switch phase {
+                    case .empty:
+                        ProgressView()
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .scaledToFill()
+                    case .failure:
+                        Image(systemName: "person.crop.circle.fill")
+                            .resizable()
+                            .scaledToFit()
+                            .foregroundStyle(.secondary)
+                    @unknown default:
+                        EmptyView()
+                    }
                 }
                 .frame(width: 120, height: 120)
                 .clipShape(Circle())
