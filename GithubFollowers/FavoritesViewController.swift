@@ -205,11 +205,11 @@ extension FavoritesViewController: UITableViewDelegate {
 
         let profileView = ProfileView(
             username: favorite.login,
-            onGetFollowers: { [weak self] username in
+            onGetFollowers: { [weak self] user in
                 guard let self else { return }
 
                 let followersVC = FollowersViewController(
-                    username: username
+                    user: user
                 )
 
                 self.navigationController?.pushViewController(

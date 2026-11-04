@@ -6,14 +6,14 @@ struct ProfileView: View {
 
     @StateObject private var viewModel: ProfileViewModel
     
-    var onGetFollowers: ((String) -> Void)?
+    var onGetFollowers: ((GitHubUser) -> Void)?
     var onGetRepositories: ((String) -> Void)?
     @State private var isFavorite = false
 
   
     init(
         username: String,
-        onGetFollowers: ((String) -> Void)? = nil,
+        onGetFollowers: ((GitHubUser) -> Void)? = nil,
         onGetRepositories: ((String) -> Void)? = nil
     ) {
         _viewModel = StateObject(
@@ -118,9 +118,8 @@ struct ProfileView: View {
                 .padding(.horizontal, 24)
                 .padding(.top, 12)
 
-                
                 Button {
-                    onGetFollowers?(user.login)
+                    onGetFollowers?(user)
                 } label: {
                     Text("Get Followers")
                         .font(.headline)

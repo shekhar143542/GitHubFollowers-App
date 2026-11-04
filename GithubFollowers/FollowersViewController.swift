@@ -5,6 +5,7 @@ import SwiftUI
 final class FollowersViewController: UIViewController {
 
     private let username: String
+    private var user: GitHubUser?
     private let api = GitHubAPIClient()
 
     private var followers: [GitHubUser] = []
@@ -29,8 +30,15 @@ final class FollowersViewController: UIViewController {
     private var collectionView: UICollectionView!
     private var dataSource:UICollectionViewDiffableDataSource<Int, Int>!
 
+    init(user: GitHubUser) {
+        self.user = user
+        self.username = user.login
+        super.init(nibName: nil, bundle: nil)
+    }
+
     init(username: String) {
         self.username = username
+        self.user = nil
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -64,31 +72,19 @@ final class FollowersViewController: UIViewController {
     }
 
     @objc private func addButtonTapped() {
-        Task {
-            do {
-                let user = try await api.fetchUser(username: username)
-                FavoritesManager.shared.addFavorite(user)
-                showAlert(
-                    title: "Success!",
-                    message: "You have successfully favorited \(username)"
-                )
-            } catch GitHubAPIError.userNotFound {
-                showAlert(
-                    title: "User Not Found",
-                    message: "The GitHub user could not be found."
-                )
-            } catch GitHubAPIError.rateLimitExceeded {
-                showAlert(
-                    title: "API Limit Reached",
-                    message: "GitHub rate limit exceeded. Please try again later."
-                )
-            } catch {
-                showAlert(
-                    title: "Unable to Favorite",
-                    message: "Something went wrong while favoriting this user."
-                )
-            }
+        guard let user else {
+            showAlert(
+                title: "Unable to Favorite",
+                message: "User information is not available to add to favorites."
+            )
+            return
         }
+
+        FavoritesManager.shared.addFavorite(user)
+        showAlert(
+            title: "Success!",
+            message: "You have successfully favorited \(user.login)"
+        )
     }
 
     private func updateEmptyState(
@@ -396,12 +392,12 @@ extension FollowersViewController: UICollectionViewDelegateFlowLayout {
       
         let profileView = ProfileView(
             username: follower.login,
-            onGetFollowers: { [weak self] username in
+            onGetFollowers: { [weak self] user in
                 guard let self else { return }
 
                 let followersVC = FollowersViewController(
-                    username: username
-                )
+                        user: user
+                    )
 
                 self.navigationController?.pushViewController(
                     followersVC,
