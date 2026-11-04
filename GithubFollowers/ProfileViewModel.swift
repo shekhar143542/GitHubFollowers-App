@@ -13,11 +13,14 @@ final class ProfileViewModel: ObservableObject {
     private let api = GitHubAPIClient()
     private let username: String
 
-    init(username: String) {
+    init(username: String, user: GitHubUser? = nil) {
         self.username = username
+        self.user = user
     }
 
     func loadProfile() async {
+        guard user == nil else { return }
+
         isLoading = true
         errorMessage = nil
 

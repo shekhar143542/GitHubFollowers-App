@@ -5,9 +5,11 @@ import SwiftUI
 final class FollowersViewController: UIViewController {
 
     private let username: String
+    private var user: GitHubUser?
     private let api = GitHubAPIClient()
 
     private var followers: [GitHubUser] = []
+    private var followerIDs = Set<Int>()
 
     // filtering properties
     private var filteredFollowers: [GitHubUser] = []
@@ -28,8 +30,15 @@ final class FollowersViewController: UIViewController {
     private var collectionView: UICollectionView!
     private var dataSource:UICollectionViewDiffableDataSource<Int, Int>!
 
+    init(user: GitHubUser) {
+        self.user = user
+        self.username = user.login
+        super.init(nibName: nil, bundle: nil)
+    }
+
     init(username: String) {
         self.username = username
+        self.user = nil
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -63,31 +72,19 @@ final class FollowersViewController: UIViewController {
     }
 
     @objc private func addButtonTapped() {
-        Task {
-            do {
-                let user = try await api.fetchUser(username: username)
-                FavoritesManager.shared.addFavorite(user)
-                showAlert(
-                    title: "Success!",
-                    message: "You have successfully favorited \(username) 🎉"
-                )
-            } catch GitHubAPIError.userNotFound {
-                showAlert(
-                    title: "User Not Found",
-                    message: "The GitHub user could not be found."
-                )
-            } catch GitHubAPIError.rateLimitExceeded {
-                showAlert(
-                    title: "API Limit Reached",
-                    message: "GitHub rate limit exceeded. Please try again later."
-                )
-            } catch {
-                showAlert(
-                    title: "Unable to Favorite",
-                    message: "Something went wrong while favoriting this user."
-                )
-            }
+        guard let user else {
+            showAlert(
+                title: "Unable to Favorite",
+                message: "User information is not available to add to favorites."
+            )
+            return
         }
+
+        FavoritesManager.shared.addFavorite(user)
+        showAlert(
+            title: "Success!",
+            message: "You have successfully favorited \(user.login)"
+        )
     }
 
     private func updateEmptyState(
@@ -184,27 +181,19 @@ final class FollowersViewController: UIViewController {
             return cell
         }
     }
-
     private func applySnapshot(using users: [GitHubUser]) {
         var snapshot = NSDiffableDataSourceSnapshot<Int, Int>()
         snapshot.appendSections([0])
 
-        // Keep each GitHub user ID unique.
-        var seenIDs = Set<Int>()
-
-        let uniqueUsers = users.filter {
-            seenIDs.insert($0.id).inserted
-        }
-
         // Store IDs as the snapshot's item identifiers.
-        snapshot.appendItems(uniqueUsers.map(\.id))
+        snapshot.appendItems(users.map(\.id))
 
         dataSource.apply(
             snapshot,
             animatingDifferences: true
         )
 
-        updateEmptyState(displayedUsers: uniqueUsers)
+        updateEmptyState(displayedUsers: users)
     }
 
     private func loadFollowers(page: Int) {
@@ -228,10 +217,10 @@ final class FollowersViewController: UIViewController {
                     username: username,
                     page: page
                 )
-
+                
                 // Append newly fetched followers
                 for follower in fetchedFollowers {
-                    if !followers.contains(where: { $0.id == follower.id }) {
+                    if followerIDs.insert(follower.id).inserted {
                         followers.append(follower)
                     }
                 }
@@ -403,12 +392,12 @@ extension FollowersViewController: UICollectionViewDelegateFlowLayout {
       
         let profileView = ProfileView(
             username: follower.login,
-            onGetFollowers: { [weak self] username in
+            onGetFollowers: { [weak self] user in
                 guard let self else { return }
 
                 let followersVC = FollowersViewController(
-                    username: username
-                )
+                        user: user
+                    )
 
                 self.navigationController?.pushViewController(
                     followersVC,

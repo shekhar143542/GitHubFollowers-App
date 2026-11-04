@@ -3,8 +3,6 @@ import GitHubNetworking
 
 final class SearchViewController: UIViewController {
 
-    private let api = GitHubAPIClient()
-    private var isFetching = false
     private let logoImageView = UIImageView()
     private let titleLabel = UILabel()
     private let usernameTextField = UITextField()
@@ -178,59 +176,16 @@ final class SearchViewController: UIViewController {
             return
         }
 
-        guard !isFetching else {
-            return
-        }
+        let followersVC = FollowersViewController(
+            username: username
+        )
 
-        isFetching = true
-        getFollowersButton.isEnabled = false
-        getFollowersButton.setTitle("Searching...", for: .normal)
-        getFollowersButton.alpha = 0.75
+        followersVC.hidesBottomBarWhenPushed = true
 
-        Task {
-            defer {
-                isFetching = false
-                getFollowersButton.isEnabled = true
-                getFollowersButton.setTitle("Get Followers", for: .normal)
-                getFollowersButton.alpha = 1.0
-            }
-
-            do {
-                // Verify that this GitHub user exists.
-                _ = try await api.fetchUser(username: username)
-
-                // Create the Followers screen with this username.
-                let followersVC = FollowersViewController(
-                    username: username
-                )
-
-                followersVC.hidesBottomBarWhenPushed = true
-
-                // Navigate to the Followers screen.
-                navigationController?.pushViewController(
-                    followersVC,
-                    animated: true
-                )
-
-            } catch GitHubAPIError.userNotFound {
-                showAlert(
-                    title: "User Not Found",
-                    message: "No GitHub user exists with that username."
-                )
-
-            } catch GitHubAPIError.rateLimitExceeded {
-                showAlert(
-                    title: "API Limit Reached",
-                    message: "GitHub has temporarily limited requests. Please try again later."
-                )
-
-            } catch {
-                showAlert(
-                    title: "Request Failed",
-                    message: "Unable to verify this GitHub user. Please try again."
-                )
-            }
-        }
+        navigationController?.pushViewController(
+            followersVC,
+            animated: true
+        )
     }
 
     private func showAlert(

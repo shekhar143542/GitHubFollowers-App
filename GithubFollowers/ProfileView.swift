@@ -6,14 +6,14 @@ struct ProfileView: View {
 
     @StateObject private var viewModel: ProfileViewModel
     
-    var onGetFollowers: ((String) -> Void)?
+    var onGetFollowers: ((GitHubUser) -> Void)?
     var onGetRepositories: ((String) -> Void)?
     @State private var isFavorite = false
 
   
     init(
         username: String,
-        onGetFollowers: ((String) -> Void)? = nil,
+        onGetFollowers: ((GitHubUser) -> Void)? = nil,
         onGetRepositories: ((String) -> Void)? = nil
     ) {
         _viewModel = StateObject(
@@ -55,12 +55,22 @@ struct ProfileView: View {
     private func profileContent(user: GitHubUser) -> some View {
         ScrollView {
             VStack(spacing: 16) {
-                AsyncImage(url: user.avatarURL) { image in
-                    image
-                        .resizable()
-                        .scaledToFill()
-                } placeholder: {
-                    ProgressView()
+                AsyncImage(url: user.avatarURL) { phase in
+                    switch phase {
+                    case .empty:
+                        ProgressView()
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .scaledToFill()
+                    case .failure:
+                        Image(systemName: "person.crop.circle.fill")
+                            .resizable()
+                            .scaledToFit()
+                            .foregroundStyle(.secondary)
+                    @unknown default:
+                        EmptyView()
+                    }
                 }
                 .frame(width: 120, height: 120)
                 .clipShape(Circle())
@@ -118,9 +128,8 @@ struct ProfileView: View {
                 .padding(.horizontal, 24)
                 .padding(.top, 12)
 
-                
                 Button {
-                    onGetFollowers?(user.login)
+                    onGetFollowers?(user)
                 } label: {
                     Text("Get Followers")
                         .font(.headline)
