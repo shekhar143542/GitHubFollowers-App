@@ -15,36 +15,75 @@ public struct GitHubAPIClient {
     }
 
     public func fetchUser(username: String) async throws -> GitHubUser {
-        try await request(
-            urlString: "https://api.github.com/users/\(username)"
-        )
+        let validUsername = try validateUsername(username)
+        let url = try makeURL(path: "/users/\(validUsername)")
+        return try await request(from: url)
     }
 
     public func fetchFollowers(
         username: String,
         page: Int
     ) async throws -> [GitHubUser] {
-        try await request(
-            urlString: "https://api.github.com/users/\(username)/followers?per_page=100&page=\(page)"
+        let validUsername = try validateUsername(username)
+        let queryItems = [
+            URLQueryItem(name: "per_page", value: "100"),
+            URLQueryItem(name: "page", value: String(page))
+        ]
+        let url = try makeURL(
+            path: "/users/\(validUsername)/followers",
+            queryItems: queryItems
         )
+        return try await request(from: url)
     }
 
     public func fetchRepositories(
         username: String,
         page: Int = 1
     ) async throws -> [GitHubRepository] {
-        try await request(
-            urlString: "https://api.github.com/users/\(username)/repos?per_page=100&page=\(page)&sort=updated"
+        let validUsername = try validateUsername(username)
+        let queryItems = [
+            URLQueryItem(name: "per_page", value: "100"),
+            URLQueryItem(name: "page", value: String(page)),
+            URLQueryItem(name: "sort", value: "updated")
+        ]
+        let url = try makeURL(
+            path: "/users/\(validUsername)/repos",
+            queryItems: queryItems
         )
-    }
-
-    private func request<T: Decodable>(urlString: String) async throws -> T {
-        guard let url = URL(string: urlString) else {
-            throw GitHubAPIError.invalidURL
-        }
         return try await request(from: url)
     }
 
+    private func validateUsername(_ username: String) throws -> String {
+        let trimmed = username.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            throw GitHubAPIError.invalidURL
+        }
+
+        let allowedCharacters = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-"))
+        guard trimmed.rangeOfCharacter(from: allowedCharacters.inverted) == nil else {
+            throw GitHubAPIError.invalidURL
+        }
+
+        return trimmed
+    }
+
+    private func makeURL(
+        path: String,
+        queryItems: [URLQueryItem]? = nil
+    ) throws -> URL {
+        var components = URLComponents()
+        components.scheme = "https"
+        components.host = "api.github.com"
+        components.path = path
+        components.queryItems = queryItems?.isEmpty == false ? queryItems : nil
+
+        guard let url = components.url else {
+            throw GitHubAPIError.invalidURL
+        }
+
+        return url
+    }
+    
     private func request<T: Decodable>(from url: URL) async throws -> T {
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
