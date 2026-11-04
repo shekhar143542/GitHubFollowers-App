@@ -32,12 +32,8 @@ final class ProfileViewModel: ObservableObject {
             user = try await api.fetchUser(
                 username: username
             )
-        } catch GitHubAPIError.userNotFound {
-            errorMessage = "GitHub user not found."
-        } catch GitHubAPIError.rateLimitExceeded {
-            errorMessage = "GitHub API rate limit reached."
         } catch {
-            errorMessage = "Unable to load profile. Please try again."
+            errorMessage = error.localizedDescription
         }
     }
 }

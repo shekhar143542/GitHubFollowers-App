@@ -1,77 +1,113 @@
-public enum GitHubAPIError: Error {
+import Foundation
+
+public enum GitHubAPIError: LocalizedError {
     case invalidURL
     case invalidResponse
     case userNotFound
     case rateLimitExceeded
     case requestFailed(statusCode: Int)
+
+    public var errorDescription: String? {
+        switch self {
+        case .invalidURL:
+            return "The GitHub username or URL is invalid."
+        case .invalidResponse:
+            return "Invalid response received from the GitHub server."
+        case .userNotFound:
+            return "The GitHub user could not be found."
+        case .rateLimitExceeded:
+            return "GitHub API rate limit exceeded. Please try again later."
+        case .requestFailed(let statusCode):
+            return "GitHub request failed with status code \(statusCode)."
+        }
+    }
 }
-
-
-import Foundation
 
 public struct GitHubAPIClient {
 
     public init() {
 
     }
-    
+
     public func fetchUser(username: String) async throws -> GitHubUser {
+        let validUsername = try validateUsername(username)
+        let url = try makeURL(path: "/users/\(validUsername)")
+        return try await request(from: url)
+    }
 
-        //safely handle when the Url is not built succesfully or fails with a invalid url string
-        guard let url = URL(string: "https://api.github.com/users/\(username)")
-        else{
-            throw GitHubAPIError.invalidURL
-        }
-
-            let (data, response) = try await URLSession.shared.data(from: url)
-        
-            guard let httpResponse = response as? HTTPURLResponse else {
-                throw GitHubAPIError.invalidResponse
-            }
-        
-            
-            let statusCode = httpResponse.statusCode
-        
-        if statusCode == 404 {
-            throw GitHubAPIError.userNotFound
-        }
-        
-            if statusCode == 403 || statusCode == 429 {
-                let remaining = httpResponse.value(
-                    forHTTPHeaderField: "X-RateLimit-Remaining"
-                )
-
-                if statusCode == 429 || remaining == "0" {
-                    throw GitHubAPIError.rateLimitExceeded
-                }
-            }
-
-        guard (200..<300).contains(httpResponse.statusCode) else {
-                        throw GitHubAPIError.requestFailed(
-                            statusCode: httpResponse.statusCode
-                )
-            }
-
-            let user = try JSONDecoder().decode(GitHubUser.self, from: data)
-
-            return user
-        }
-    
-    
     public func fetchFollowers(
         username: String,
         page: Int
     ) async throws -> [GitHubUser] {
+        let validUsername = try validateUsername(username)
+        let queryItems = [
+            URLQueryItem(name: "per_page", value: "100"),
+            URLQueryItem(name: "page", value: String(page))
+        ]
+        let url = try makeURL(
+            path: "/users/\(validUsername)/followers",
+            queryItems: queryItems
+        )
+        return try await request(from: url)
+    }
 
-        guard let url = URL(
-            string: "https://api.github.com/users/\(username)/followers?per_page=100&page=\(page)"
-        ) else {
+    public func fetchRepositories(
+        username: String,
+        page: Int = 1
+    ) async throws -> [GitHubRepository] {
+        let validUsername = try validateUsername(username)
+        let queryItems = [
+            URLQueryItem(name: "per_page", value: "100"),
+            URLQueryItem(name: "page", value: String(page)),
+            URLQueryItem(name: "sort", value: "updated")
+        ]
+        let url = try makeURL(
+            path: "/users/\(validUsername)/repos",
+            queryItems: queryItems
+        )
+        return try await request(from: url)
+    }
+
+    private func validateUsername(_ username: String) throws -> String {
+        let trimmed = username.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
             throw GitHubAPIError.invalidURL
         }
 
-        let (data, response) = try await URLSession.shared.data(
-            from: url
+        let allowedCharacters = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-"))
+        guard trimmed.rangeOfCharacter(from: allowedCharacters.inverted) == nil else {
+            throw GitHubAPIError.invalidURL
+        }
+
+        return trimmed
+    }
+
+    private func makeURL(
+        path: String,
+        queryItems: [URLQueryItem]? = nil
+    ) throws -> URL {
+        var components = URLComponents()
+        components.scheme = "https"
+        components.host = "api.github.com"
+        components.path = path
+        components.queryItems = queryItems?.isEmpty == false ? queryItems : nil
+
+        guard let url = components.url else {
+            throw GitHubAPIError.invalidURL
+        }
+
+        return url
+    }
+    
+    private func request<T: Decodable>(from url: URL) async throws -> T {
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue(
+            "application/vnd.github+json",
+            forHTTPHeaderField: "Accept"
         )
+
+        let (data, response) = try await URLSession.shared.data(for: request)
 
         guard let httpResponse = response as? HTTPURLResponse else {
             throw GitHubAPIError.invalidResponse
@@ -99,57 +135,6 @@ public struct GitHubAPIClient {
             )
         }
 
-        return try JSONDecoder().decode(
-            [GitHubUser].self,
-            from: data
-        )
+        return try JSONDecoder().decode(T.self, from: data)
     }
-    
-    
-    public func fetchRepositories(
-        username: String,
-        page: Int = 1
-    ) async throws -> [GitHubRepository] {
-
-        guard let url = URL(
-            string: "https://api.github.com/users/\(username)/repos?per_page=100&page=\(page)&sort=updated"
-        ) else {
-            throw GitHubAPIError.invalidURL
-        }
-
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        request.setValue(
-            "application/vnd.github+json",
-            forHTTPHeaderField: "Accept"
-        )
-
-        let (data, response) = try await URLSession.shared.data(for: request)
-
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw GitHubAPIError.invalidResponse
-        }
-
-        switch httpResponse.statusCode {
-        case 200:
-            return try JSONDecoder().decode(
-                [GitHubRepository].self,
-                from: data
-            )
-
-        case 404:
-            throw GitHubAPIError.userNotFound
-
-        case 403, 429:
-            throw GitHubAPIError.rateLimitExceeded
-
-        default:
-            throw GitHubAPIError.requestFailed(
-                statusCode: httpResponse.statusCode
-            )
-        }
-    }
-
-
-
 }

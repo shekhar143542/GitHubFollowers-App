@@ -45,12 +45,8 @@ final class RepositoriesViewModel: ObservableObject {
             if hasMoreRepositories {
                 currentPage += 1
             }
-        } catch GitHubAPIError.userNotFound {
-            errorMessage = "GitHub user not found."
-        } catch GitHubAPIError.rateLimitExceeded {
-            errorMessage = "GitHub API rate limit reached. Please try again later."
         } catch {
-            errorMessage = "Unable to load repositories. Please try again."
+            errorMessage = error.localizedDescription
         }
     }
 }

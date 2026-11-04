@@ -237,22 +237,10 @@ final class FollowersViewController: UIViewController {
                 // Remember the next page to request.
                 currentPage = page + 1
 
-            } catch GitHubAPIError.userNotFound {
-                showAlert(
-                    title: "User Not Found",
-                    message: "The GitHub user could not be found."
-                )
-
-            } catch GitHubAPIError.rateLimitExceeded {
-                showAlert(
-                    title: "API Limit Reached",
-                    message: "Please wait before making more GitHub requests."
-                )
-
             } catch {
                 showAlert(
                     title: "Unable to Load Followers",
-                    message: "Something went wrong while loading followers."
+                    message: error.localizedDescription
                 )
             }
         }
