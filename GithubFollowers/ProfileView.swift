@@ -1,5 +1,6 @@
 
 import SwiftUI
+import UIKit
 import GitHubNetworking
 
 struct ProfileView: View {
@@ -13,11 +14,12 @@ struct ProfileView: View {
   
     init(
         username: String,
+        user: GitHubUser? = nil,
         onGetFollowers: ((GitHubUser) -> Void)? = nil,
         onGetRepositories: ((String) -> Void)? = nil
     ) {
         _viewModel = StateObject(
-            wrappedValue: ProfileViewModel(username: username)
+            wrappedValue: ProfileViewModel(username: username, user: user)
         )
 
         self.onGetFollowers = onGetFollowers
@@ -181,6 +183,44 @@ struct ProfileView: View {
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
         }
+    }
+}
+
+extension ProfileView {
+
+    @MainActor
+    static func buildViewController(
+        username: String,
+        user: GitHubUser? = nil,
+        navigationController: UINavigationController? = nil
+    ) -> UIViewController {
+        var hostingController: UIHostingController<ProfileView>!
+
+        let profileView = ProfileView(
+            username: username,
+            user: user,
+            onGetFollowers: { [weak navigationController, weak hostingController] user in
+                let targetNavController = navigationController ?? hostingController?.navigationController
+                let followersVC = FollowersViewController(user: user)
+                targetNavController?.pushViewController(
+                    followersVC,
+                    animated: true
+                )
+            },
+            onGetRepositories: { [weak navigationController, weak hostingController] username in
+                let targetNavController = navigationController ?? hostingController?.navigationController
+                let repositoriesView = RepositoriesView(username: username)
+                let reposHostingVC = UIHostingController(rootView: repositoriesView)
+                targetNavController?.pushViewController(
+                    reposHostingVC,
+                    animated: true
+                )
+            }
+        )
+
+        hostingController = UIHostingController(rootView: profileView)
+        hostingController.title = "Profile"
+        return hostingController
     }
 }
 

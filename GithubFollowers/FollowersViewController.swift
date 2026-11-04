@@ -387,47 +387,14 @@ extension FollowersViewController: UICollectionViewDelegateFlowLayout {
             return
         }
 
-      
-        let profileView = ProfileView(
+        let profileVC = ProfileView.buildViewController(
             username: follower.login,
-            onGetFollowers: { [weak self] user in
-                guard let self else { return }
-
-                let followersVC = FollowersViewController(
-                        user: user
-                    )
-
-                self.navigationController?.pushViewController(
-                    followersVC,
-                    animated: true
-                )
-            },
-            onGetRepositories: { [weak self] username in
-                guard let self else { return }
-
-                let repositoriesView = RepositoriesView(
-                    username: username
-                )
-
-                let hostingController = UIHostingController(
-                    rootView: repositoriesView
-                )
-
-                self.navigationController?.pushViewController(
-                    hostingController,
-                    animated: true
-                )
-            }
+            user: follower,
+            navigationController: navigationController
         )
-
-        let hostingController = UIHostingController(
-            rootView: profileView
-        )
-
-        hostingController.title = "Profile"
 
         navigationController?.pushViewController(
-            hostingController,
+            profileVC,
             animated: true
         )
     }
