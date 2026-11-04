@@ -26,6 +26,7 @@ final class FollowersViewController: UIViewController {
     private var currentPage = 1
     private var hasMoreFollowers = true
     private var isLoadingPage = false
+    private var fetchTask: Task<Void, Never>?
 
     private var collectionView: UICollectionView!
     private var dataSource:UICollectionViewDiffableDataSource<Int, Int>!
@@ -57,6 +58,11 @@ final class FollowersViewController: UIViewController {
         configureSearchController()
 
         loadFollowers(page: currentPage)
+    }
+
+    override func viewDidDisappear(_ animated: Bool) {
+        super.viewDidDisappear(animated)
+        fetchTask?.cancel()
     }
 
     private func configureViewController() {
@@ -206,7 +212,8 @@ final class FollowersViewController: UIViewController {
             activityIndicator.startAnimating()
         }
 
-        Task {
+        fetchTask?.cancel()
+        fetchTask = Task {
             defer {
                 isLoadingPage = false
                 activityIndicator.stopAnimating()
@@ -217,7 +224,9 @@ final class FollowersViewController: UIViewController {
                     username: username,
                     page: page
                 )
-                
+
+                guard !Task.isCancelled else { return }
+
                 // Append newly fetched followers
                 for follower in fetchedFollowers {
                     if followerIDs.insert(follower.id).inserted {
@@ -238,6 +247,7 @@ final class FollowersViewController: UIViewController {
                 currentPage = page + 1
 
             } catch {
+                guard !Task.isCancelled else { return }
                 showAlert(
                     title: "Unable to Load Followers",
                     message: error.localizedDescription
