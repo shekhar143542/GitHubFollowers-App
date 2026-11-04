@@ -1,11 +1,26 @@
 import Foundation
 
-public enum GitHubAPIError: Error {
+public enum GitHubAPIError: LocalizedError {
     case invalidURL
     case invalidResponse
     case userNotFound
     case rateLimitExceeded
     case requestFailed(statusCode: Int)
+
+    public var errorDescription: String? {
+        switch self {
+        case .invalidURL:
+            return "The GitHub username or URL is invalid."
+        case .invalidResponse:
+            return "Invalid response received from the GitHub server."
+        case .userNotFound:
+            return "The GitHub user could not be found."
+        case .rateLimitExceeded:
+            return "GitHub API rate limit exceeded. Please try again later."
+        case .requestFailed(let statusCode):
+            return "GitHub request failed with status code \(statusCode)."
+        }
+    }
 }
 
 public struct GitHubAPIClient {
