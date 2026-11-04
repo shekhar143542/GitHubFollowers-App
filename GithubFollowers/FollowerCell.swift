@@ -11,6 +11,7 @@ final class FollowerCell: UICollectionViewCell {
 
     // Identifies the image this cell is currently expecting.
     private var representedURL: URL?
+    private var imageTask: Task<Void, Never>?
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -27,9 +28,13 @@ final class FollowerCell: UICollectionViewCell {
     override func prepareForReuse() {
         super.prepareForReuse()
 
+        // Cancel any pending download before this cell is reused.
+        imageTask?.cancel()
+        imageTask = nil
+
         // Prevent an old image from appearing for another user.
         representedURL = nil
-                avatarImageView.image = UIImage(
+        avatarImageView.image = UIImage(
             systemName: "person.crop.circle.fill"
         )
     }
@@ -103,22 +108,23 @@ final class FollowerCell: UICollectionViewCell {
         let url = follower.avatarURL
         representedURL = url
 
-        Task {
+        imageTask?.cancel()
+        imageTask = Task {
             do {
                 let image = try await ImageCacheManager.shared.getImage(
                     for: url
                 )
 
                 // Cells are reused, so ensure this is still
-                // the correct image for the current follower.
-                guard representedURL == url else {
+                // the correct image for the current follower and not cancelled.
+                guard !Task.isCancelled, representedURL == url else {
                     return
                 }
 
                 avatarImageView.image = image
 
             } catch {
-                // Keep the placeholder if image loading fails.
+                // Keep the placeholder if image loading fails or is cancelled.
             }
         }
     }
